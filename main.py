@@ -26,7 +26,11 @@ def mark_visited(image, visited):
     for pixel in visited:
         image[pixel] = [0, 255, 0, 255]
 
+# Add x1 - x2 and y1 - y2 to determine the distance to the target. This is used as the priority
 def determinePriority(current, target):
+    return abs(current[0] - target[0]) + abs(current[1] - target[1])
+
+def h(current, target):
     return abs(current[0] - target[0]) + abs(current[1] - target[1])
 
 # Breadth-First-Search to find shortest path in the maze
@@ -59,36 +63,45 @@ def bfs(I, s, t):
     # No path was found
     return None, None
 
+
 def BestFirstSearch(I, s, t):
     # get the size of the image in the form [x,y]
     shape = I.shape[:2]
 
-    # Initialize empty set for visited pixels
-    visited = set()
-    
-    # Initialize priority queue with starting state
+    # Initialize priority queue
     queue = PriorityQueue()
-    queue.put((0, s, [s]))  # (priority, current, path)
+    queue.put((h(s, t), s))  # (priority, current)
 
-    # While queue not empty, search
-    while not queue.empty():
-        priority, current, path = queue.get()
-        visited.add(current)
+    # Initialize visited and distance dictionaries
+    visited = set()
+    visited.add(s)
+    distance = {s: h(s, t)}
+    prev = {s: None}
 
-        # if we have reached the destination return the shortest path and all visited pixels
-        if current == t:
-            return path, visited
-        
-        # Get the Adjacent Pixels, if valid search
+    while not queue.empty() and t not in visited:
+        _, current = queue.get()
+
+        # Get adjacent pixels
         adjacent_pixels = getAdjacentPixels(shape, current)
-        for pixel in adjacent_pixels:
-            if pixel not in visited and isFreePixel(I, pixel):
-                priority = determinePriority(pixel, t)  # Replace with your heuristic function
-                queue.put((priority, pixel, path + [pixel]))
-                visited.add(pixel)
-    
-    # No path was found
-    return None, None
+
+        for neighbor in adjacent_pixels:
+            if neighbor not in visited and isFreePixel(I, neighbor):
+                visited.add(neighbor)
+                distance[neighbor] = distance[current] + 1
+                prev[neighbor] = current
+                queue.put((distance[neighbor] + h(neighbor, t), neighbor))
+
+    # Reconstruct the path
+    path = []
+    if t in visited:
+        current = t
+        while current is not None:
+            path.append(current)
+            current = prev[current]
+        path.reverse()
+
+    return path, visited
+
 
 def main():
     filename = input("Enter the name of the maze file(i.e: maze.bmp):\n")
